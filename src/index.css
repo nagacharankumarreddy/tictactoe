@@ -19,7 +19,7 @@ ol,
 ul {
   padding-left: 30px;
 }
-button {
+.resetbut {
   background-color: #68cb6b;
   border: none;
   color: white;

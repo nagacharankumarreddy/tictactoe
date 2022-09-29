@@ -77,7 +77,7 @@ class Board extends React.Component {
     return (
       <div>
         <div className="status">{status}</div>
-        <button calssName="resetbut" onClick={() => this.reset()}>
+        <button className="resetbut" onClick={() => this.reset()}>
           Reset
         </button>
         <div className="board-row">

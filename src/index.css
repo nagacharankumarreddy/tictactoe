@@ -1,7 +1,6 @@
 body {
   font: 14px "Century Gothic", Futura, sans-serif;
-  margin: 20px;
-  background-image: linear-gradient(red, yellow);
+  background-image: url(./bg.jpg);
   background-repeat: no-repeat;
   background-size: cover;
   width: 100%;
@@ -20,10 +19,10 @@ ul {
   padding-left: 30px;
 }
 .resetbut {
-  background-color: #68cb6b;
+  background-color: #609661;
   border: none;
   color: white;
-  padding: 10px 20px;
+  padding: 5px 5px;
   text-align: center;
   text-decoration: none;
   display: inline-block;

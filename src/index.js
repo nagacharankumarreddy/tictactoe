@@ -1,127 +1,118 @@
-import React from "react";
+import React, { useState } from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
 
-function Square(props) {
+function Square({ value, onClick }) {
+  const className = `square ${value}`;
   return (
-    <button className="square" onClick={() => props.onClick()}>
-      {props.value}
+    <button className={className} onClick={onClick}>
+      {value}
     </button>
   );
 }
 
-function CalculateWinner(squares) {
-  const lines = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6],
-  ];
-  for (let i = 0; i < lines.length; i++) {
-    const [a, b, c] = lines[i];
-    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+function calculateWinner(squares, size) {
+  const lines = [];
+
+  for (let r = 0; r < size; r++) {
+    lines.push([...Array(size)].map((_, i) => r * size + i));
+  }
+
+  for (let c = 0; c < size; c++) {
+    lines.push([...Array(size)].map((_, i) => i * size + c));
+  }
+
+  lines.push([...Array(size)].map((_, i) => i * (size + 1)));
+
+  lines.push([...Array(size)].map((_, i) => (i + 1) * (size - 1)));
+
+  for (const [a, ...rest] of lines) {
+    if (squares[a] && rest.every((i) => squares[i] === squares[a])) {
       return squares[a];
     }
   }
+
   return null;
 }
 
-class Board extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      squares: Array(9).fill(null),
-      xIsNext: true,
-    };
+function Board() {
+  const [size, setSize] = useState(3);
+  const [squares, setSquares] = useState(Array(9).fill(null));
+  const [xIsNext, setXIsNext] = useState(true);
+
+  const handleClick = (i) => {
+    if (squares[i] || calculateWinner(squares, size)) return;
+    const nextSquares = [...squares];
+    nextSquares[i] = xIsNext ? "X" : "O";
+    setSquares(nextSquares);
+    setXIsNext(!xIsNext);
+  };
+
+  const resetGame = () => {
+    setSquares(Array(size * size).fill(null));
+    setXIsNext(true);
+  };
+
+  const handleLevelChange = (e) => {
+    const newSize = parseInt(e.target.value);
+    setSize(newSize);
+    setSquares(Array(newSize * newSize).fill(null));
+    setXIsNext(true);
+  };
+
+  const winner = calculateWinner(squares, size);
+  let status;
+
+  if (winner) {
+    status = `Winner: ${winner}`;
+  } else if (squares.every((square) => square !== null)) {
+    status = "It's a Draw!";
+  } else {
+    status = `Next player: ${xIsNext ? "X" : "O"}`;
   }
 
-  reset() {
-    this.setState({
-      squares: this.state.squares.map((x) => null),
-      xIsNext: true,
-    });
-  }
-
-  handleClick(i) {
-    const squares = this.state.squares.slice();
-    if (squares[i] || CalculateWinner(squares)) return;
-    squares[i] = this.state.xIsNext ? "X" : "O";
-    this.setState({
-      squares: squares,
-      xIsNext: !this.state.xIsNext,
-    });
-  }
-
-  renderSquare(i) {
-    return (
-      <Square
-        value={this.state.squares[i]}
-        onClick={() => this.handleClick(i)}
-      />
-    );
-  }
-
-  render() {
-    const winner = CalculateWinner(this.state.squares);
-    let status;
-    if (winner) {
-      status = `Winner: ${winner}`;
-    } else {
-      status = `Next player: ${this.state.xIsNext ? "X" : "O"}`;
-    }
-
-    return (
-      <div>
-        <div className="status">{status}</div>
-        <button className="resetbut" onClick={() => this.reset()}>
-          Reset
-        </button>
-        <div className="board-row">
-          {this.renderSquare(0)}
-          {this.renderSquare(1)}
-          {this.renderSquare(2)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(3)}
-          {this.renderSquare(4)}
-          {this.renderSquare(5)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(6)}
-          {this.renderSquare(7)}
-          {this.renderSquare(8)}
-        </div>
+  return (
+    <div className="board-container">
+      <div className="controls">
+        <label>Difficulty: </label>
+        <select onChange={handleLevelChange} value={size}>
+          <option value={3}>Easy (3x3)</option>
+          <option value={4}>Medium (4x4)</option>
+          <option value={5}>Hard (5x5)</option>
+        </select>
       </div>
-    );
-  }
+      <div className="status">{status}</div>
+      <button className="resetbut" onClick={resetGame}>
+        Reset
+      </button>
+      {[...Array(size)].map((_, row) => (
+        <div className="board-row" key={row}>
+          {[...Array(size)].map((_, col) => {
+            const index = row * size + col;
+            return (
+              <Square
+                key={index}
+                value={squares[index]}
+                onClick={() => handleClick(index)}
+              />
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
 }
 
-class Game extends React.Component {
-  render() {
-    return (
+function Game() {
+  return (
+    <div className="fullscreen-container">
       <div className="game">
-        <div>
-          Tic-tac-toe is a very popular game for two players, X and O, who take
-          turns marking the spaces in a 3×3 grid. The player who succeeds in
-          placing three of their marks in a vertical, horizontal or diagonal row
-          wins the game.
-          <div className="game-board">
-            <Board />
-          </div>
-          <div className="game-info">
-            <div>{/* status */}</div>
-            <ol>{/* TODO */}</ol>
-          </div>
-        </div>
+        <h2>Tic-Tac-Toe</h2>
+        <p>Choose a difficulty level to play a dynamic grid game!</p>
+        <Board />
       </div>
-    );
-  }
+    </div>
+  );
 }
-
-// ========================================
 
 ReactDOM.render(<Game />, document.getElementById("root"));

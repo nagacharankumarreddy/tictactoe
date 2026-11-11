@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
 
-function Square({ value, onClick }) {
-  const className = `square ${value}`;
+function Square({ value, onClick, isWinning, label }) {
+  const className = `square ${value || ""} ${isWinning ? "win" : ""}`;
   return (
-    <button className={className} onClick={onClick}>
+    <button className={className} onClick={onClick} aria-label={label}>
       {value}
     </button>
   );
@@ -28,7 +28,7 @@ function calculateWinner(squares, size) {
 
   for (const [a, ...rest] of lines) {
     if (squares[a] && rest.every((i) => squares[i] === squares[a])) {
-      return squares[a];
+      return { winner: squares[a], line: [a, ...rest] };
     }
   }
 
@@ -39,13 +39,27 @@ function Board() {
   const [size, setSize] = useState(3);
   const [squares, setSquares] = useState(Array(9).fill(null));
   const [xIsNext, setXIsNext] = useState(true);
+  const [scores, setScores] = useState({ X: 0, O: 0, draws: 0 });
+
+  const result = calculateWinner(squares, size);
+  const winner = result ? result.winner : null;
+  const winningLine = result ? result.line : [];
+  const isDraw = !winner && squares.every((square) => square !== null);
+  const inProgress = !winner && !isDraw;
 
   const handleClick = (i) => {
-    if (squares[i] || calculateWinner(squares, size)) return;
+    if (squares[i] || winner) return;
     const nextSquares = [...squares];
     nextSquares[i] = xIsNext ? "X" : "O";
     setSquares(nextSquares);
     setXIsNext(!xIsNext);
+
+    const outcome = calculateWinner(nextSquares, size);
+    if (outcome) {
+      setScores((prev) => ({ ...prev, [outcome.winner]: prev[outcome.winner] + 1 }));
+    } else if (nextSquares.every((square) => square !== null)) {
+      setScores((prev) => ({ ...prev, draws: prev.draws + 1 }));
+    }
   };
 
   const resetGame = () => {
@@ -54,36 +68,52 @@ function Board() {
   };
 
   const handleLevelChange = (e) => {
-    const newSize = parseInt(e.target.value);
+    const newSize = parseInt(e.target.value, 10);
     setSize(newSize);
     setSquares(Array(newSize * newSize).fill(null));
     setXIsNext(true);
   };
 
-  const winner = calculateWinner(squares, size);
   let status;
-
   if (winner) {
-    status = `Winner: ${winner}`;
-  } else if (squares.every((square) => square !== null)) {
-    status = "It's a Draw!";
+    status = `${winner} wins!`;
+  } else if (isDraw) {
+    status = "It's a draw!";
   } else {
-    status = `Next player: ${xIsNext ? "X" : "O"}`;
+    status = `${xIsNext ? "X" : "O"}'s turn`;
   }
 
   return (
     <div className="board-container">
       <div className="controls">
-        <label>Difficulty: </label>
-        <select onChange={handleLevelChange} value={size}>
+        <label htmlFor="level">Difficulty: </label>
+        <select id="level" onChange={handleLevelChange} value={size}>
           <option value={3}>Easy (3x3)</option>
           <option value={4}>Medium (4x4)</option>
           <option value={5}>Hard (5x5)</option>
         </select>
       </div>
-      <div className="status">{status}</div>
+
+      <div className="scoreboard">
+        <div className={`score-chip x ${inProgress && xIsNext ? "active" : ""}`}>
+          <span>Player X</span>
+          <strong>{scores.X}</strong>
+        </div>
+        <div className="score-chip draws">
+          <span>Draws</span>
+          <strong>{scores.draws}</strong>
+        </div>
+        <div className={`score-chip o ${inProgress && !xIsNext ? "active" : ""}`}>
+          <span>Player O</span>
+          <strong>{scores.O}</strong>
+        </div>
+      </div>
+
+      <div className={`status ${winner ? `won-${winner}` : ""}`} aria-live="polite">
+        {status}
+      </div>
       <button className="resetbut" onClick={resetGame}>
-        Reset
+        {winner || isDraw ? "Play again" : "New game"}
       </button>
       {[...Array(size)].map((_, row) => (
         <div className="board-row" key={row}>
@@ -93,6 +123,8 @@ function Board() {
               <Square
                 key={index}
                 value={squares[index]}
+                isWinning={winningLine.includes(index)}
+                label={`Row ${row + 1}, column ${col + 1}, ${squares[index] || "empty"}`}
                 onClick={() => handleClick(index)}
               />
             );
